@@ -98,10 +98,14 @@ mkboot_img()
     [ $second_size -gt 0 ] && second="--second ${second}"
     [ $dtb_size -gt 0 ] && dtb="--dt ${dt}"
 
-    $mkbootimg --kernel $kernel --ramdisk $ramdisk --board "$board" \
+    $mkbootimg --kernel $kernel --ramdisk ramdisk.packed --board "$board" \
         --base $base_addr --ramdisk_offset $ramdisk_offset \
         --tags_offset $tags_offset --cmdline "$cmd_line" \
         --pagesize $page_size $second $dtb -o $1 || error=1
+
+    if [ -f os_version_and_patch_level ]; then
+        dd if=os_version_and_patch_level of=$1 bs=4 oflag=seek_bytes seek=44 count=1 conv=notrunc
+    fi
 
     [ $error -eq 1 ] && return $error
     ramdisk_size=$(stat -c "%s" $ramdisk)
@@ -239,6 +243,8 @@ if [ $second_size -gt 0 ]; then
    s_name="second=second.img\n"
    s_size="second_size=$second_size\n"
 fi
+#os_version_and_patch_level
+dd if=$bootimg of=os_version_and_patch_level bs=4 skip=11 count=1 2>/dev/null
 #dtb
 if [ $dtb_size -gt 0 ]; then
     dd if=$bootimg of=dt.img_tmp bs=$page_size skip=$d_offset count=$d_count 2>/dev/null
